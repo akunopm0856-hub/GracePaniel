@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BORN Panel - RANZX</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%);
+            color: #00ff41;
+            font-family: 'Courier New', monospace;
+            padding: 20px;
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        h1 {
+            text-align: center;
+            color: #ff0040;
+            text-shadow: 0 0 10px #ff0040;
+            margin-bottom: 10px;
+        }
+        h3 {
+            text-align: center;
+            color: #ff6600;
+            margin-bottom: 30px;
+        }
+        .card {
+            background: rgba(0, 0, 0, 0.8);
+            border: 1px solid #00ff41;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 0 20px rgba(0, 255, 65, 0.2);
+        }
+        .card h2 {
+            margin-bottom: 15px;
+            color: #ff6600;
+        }
+        input, select {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            background: #000;
+            border: 1px solid #00ff41;
+            color: #00ff41;
+            font-family: 'Courier New', monospace;
+        }
+        button {
+            background: #ff0040;
+            color: #fff;
+            border: none;
+            padding: 10px 20px;
+            cursor: pointer;
+            font-weight: bold;
+            margin: 5px;
+            transition: 0.3s;
+        }
+        button:hover {
+            background: #00ff41;
+            color: #000;
+            box-shadow: 0 0 10px #00ff41;
+        }
+        .bot-item {
+            border: 1px solid #00ff41;
+            padding: 10px;
+            margin: 10px 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .status-running {
+            color: #00ff41;
+            font-weight: bold;
+        }
+        .status-stopped {
+            color: #ff0040;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔥 BORN BOT CONTROL PANEL</h1>
+        <h3>👑 Owner: RANZX</h3>
+        
+        <div class="card">
+            <h2>➕ Add New Bot</h2>
+            <input type="text" id="botName" placeholder="Bot Name">
+            <select id="botType">
+                <option value="telegram">Telegram</option>
+                <option value="discord">Discord</option>
+            </select>
+            <input type="text" id="botToken" placeholder="Bot Token / API Key">
+            <button onclick="addBot()">🔥 DEPLOY BOT</button>
+        </div>
+        
+        <div class="card">
+            <h2>🤖 Your Bots</h2>
+            <div id="botList"></div>
+        </div>
+    </div>
+    
+    <script>
+        async function loadBots() {
+            const res = await fetch('/api/bots');
+            const bots = await res.json();
+            const container = document.getElementById('botList');
+            if (bots.length === 0) {
+                container.innerHTML = '<p style="color:#888;">No bots yet. Add one above!</p>';
+                return;
+            }
+            container.innerHTML = bots.map(bot => `
+                <div class="bot-item">
+                    <div>
+                        <strong>${bot.name}</strong> (${bot.type})<br>
+                        <small>ID: ${bot.id}</small>
+                    </div>
+                    <div class="status-${bot.status}">
+                        ${bot.status.toUpperCase()}
+                    </div>
+                    <div>
+                        ${bot.status === 'stopped' ? 
+                            `<button onclick="startBot(${bot.id})">▶ START</button>` :
+                            `<button onclick="stopBot(${bot.id})">⏹ STOP</button>`
+                        }
+                        <button onclick="deleteBot(${bot.id})">🗑 DELETE</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        async function addBot() {
+            const name = document.getElementById('botName').value;
+            const type = document.getElementById('botType').value;
+            const token = document.getElementById('botToken').value;
+            
+            if (!name || !token) {
+                alert('Isi nama dan token bot!');
+                return;
+            }
+            
+            await fetch('/api/bots', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ name, type, token })
+            });
+            
+            document.getElementById('botName').value = '';
+            document.getElementById('botToken').value = '';
+            loadBots();
+        }
+        
+        async function startBot(id) {
+            await fetch(`/api/bots/${id}/start`, {method: 'POST'});
+            loadBots();
+        }
+        
+        async function stopBot(id) {
+            await fetch(`/api/bots/${id}/stop`, {method: 'POST'});
+            loadBots();
+        }
+        
+        async function deleteBot(id) {
+            if (confirm('Hapus bot ini?')) {
+                await fetch(`/api/bots/${id}`, {method: 'DELETE'});
+                loadBots();
+            }
+        }
+        
+        loadBots();
+        setInterval(loadBots, 3000);
+    </script>
+</body>
+</html>
